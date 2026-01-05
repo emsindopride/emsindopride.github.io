@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mode Kasir - Obat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+    h1 { margin-bottom: 5px; }
+    table { border-collapse: collapse; width: 100%; background:white; }
+    th, td { border:1px solid #ccc; padding:8px; text-align:center; }
+    th { background:#eee; }
+    input[type=number] { width: 100px; }
+    .actions { margin-top: 15px; }
+    button { padding:8px 14px; margin-right:10px; cursor:pointer; }
+    .summary { margin-top:20px; background:white; padding:15px; border:1px solid #ccc; }
+    .setup { background:white; padding:15px; border:1px solid #ccc; margin-bottom:15px; }
+  </style>
+</head>
+<body>
+
+<h1>Mode Kasir (Stok Berjalan)</h1>
+<p>Silakan isi <b>stok awal</b>. Nama barang dan harga sudah ditetapkan.</p>
+
+<div class="setup" id="setupBox">
+  <h3>Setup Stok Awal</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Nama Barang</th>
+        <th>Harga</th>
+        <th>Stok Awal</th>
+      </tr>
+    </thead>
+    <tbody id="setupTable"></tbody>
+  </table>
+  <br>
+  <button onclick="mulaiKasir()">Mulai Mode Kasir</button>
+</div>
+
+<table id="kasirTable" style="display:none">
+  <thead>
+    <tr>
+      <th>Barang</th>
+      <th>Harga</th>
+      <th>Stok Tersisa</th>
+      <th>Jumlah Beli</th>
+      <th>Subtotal</th>
+    </tr>
+  </thead>
+  <tbody id="kasirBody"></tbody>
+</table>
+
+<div class="actions" id="kasirActions" style="display:none">
+  <button onclick="prosesTransaksi()">Proses Transaksi</button>
+  <button onclick="transaksiBaru()">Transaksi Baru</button>
+</div>
+
+<div class="summary" id="summary" style="display:none">
+  <h3>Total Bayar</h3>
+  <p><b>Rp <span id="totalBayar">0</span></b></p>
+</div>
+
+<div class="summary" id="rekapBox" style="display:none">
+  <h3>Rekap Sisa Barang (Discord)</h3>
+  <textarea id="rekapText" rows="10" style="width:100%; font-family:monospace" readonly></textarea><br><br>
+  <button onclick="copyRekap()">Copy Rekap</button>
+</div>
+
+<script>
+  const daftarBarang = [
+    { nama: 'Betadine', harga: 8500 },
+    { nama: 'Heparin', harga: 8500 },
+    { nama: 'Antasida', harga: 8500 },
+    { nama: 'Zat Besi', harga: 12500 },
+    { nama: 'Sodium', harga: 12500 },
+    { nama: 'Painkiller', harga: 15000 }
+  ];
+
+  const jumlahBarang = daftarBarang.length;
+  const setupTable = document.getElementById('setupTable');
+  const kasirBody = document.getElementById('kasirBody');
+
+  let barang = [];
+
+  // setup stok awal (HANYA STOK YANG DIISI)
+  daftarBarang.forEach((item, i) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${item.nama}</td>
+      <td>Rp ${item.harga}</td>
+      <td><input type="number" min="0" id="stok${i}" value="0"></td>
+    `;
+    setupTable.appendChild(row);
+  });
+
+  function mulaiKasir() {
+    barang = [];
+    kasirBody.innerHTML = '';
+
+    daftarBarang.forEach((item, i) => {
+      const stok = parseInt(document.getElementById(`stok${i}`).value) || 0;
+      const data = { ...item, stok };
+      barang.push(data);
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${data.nama}</td>
+        <td>Rp ${data.harga}</td>
+        <td id="stokView${i}">${data.stok}</td>
+        <td><input type="number" min="0" id="beli${i}" value="0"></td>
+        <td id="sub${i}">-</td>
+      `;
+      kasirBody.appendChild(row);
+    });
+
+    document.getElementById('setupBox').style.display = 'none';
+    document.getElementById('kasirTable').style.display = '';
+    document.getElementById('kasirActions').style.display = '';
+    document.getElementById('summary').style.display = '';
+  }
+
+  function prosesTransaksi() {
+    let total = 0;
+
+    for (let i = 0; i < jumlahBarang; i++) {
+      const beli = parseInt(document.getElementById(`beli${i}`).value) || 0;
+      const jual = Math.min(beli, barang[i].stok);
+
+      const subtotal = jual * barang[i].harga;
+      barang[i].stok -= jual;
+
+      document.getElementById(`stokView${i}`).innerText = barang[i].stok;
+      document.getElementById(`sub${i}`).innerText = 'Rp ' + subtotal;
+
+      total += subtotal;
+    }
+
+    document.getElementById('totalBayar').innerText = total;
+
+    // waktu dipastikan GMT+7 (Asia/Jakarta)
+    const now = new Date();
+    const tanggal = now.toLocaleDateString('id-ID', {
+      timeZone: 'Asia/Jakarta'
+    });
+    const jam = now.toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    let teks = "```\n";
+    teks += "REKAP SISA BARANG\n";
+    teks += `Tanggal : ${tanggal}\n`;
+    teks += `Jam     : ${jam}\n`;
+    teks += "-----------------\n";
+
+    for (let i = 0; i < jumlahBarang; i++) {
+      teks += `${barang[i].nama} : ${barang[i].stok}\n`;
+    }
+
+    teks += "```";
+    document.getElementById('rekapText').value = teks;
+    document.getElementById('rekapBox').style.display = '';
+  }
+
+  function transaksiBaru() {
+    for (let i = 0; i < jumlahBarang; i++) {
+      document.getElementById(`beli${i}`).value = 0;
+      document.getElementById(`sub${i}`).innerText = '-';
+    }
+    document.getElementById('totalBayar').innerText = 0;
+    document.getElementById('rekapBox').style.display = 'none';
+  }
+
+  function copyRekap() {
+    const textarea = document.getElementById('rekapText');
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    alert('Rekap berhasil disalin!');
+  }
+</script>
+
+</body>
+</html>
