@@ -18,7 +18,7 @@
 </head>
 <body>
 
-<h1>Mode Kasir (Stok Berjalan)</h1>
+<h1>Farmasi EMS Indopride</h1>
 <p>Silakan isi <b>stok awal</b>. Nama barang dan harga sudah ditetapkan.</p>
 
 <div class="setup" id="setupBox">
@@ -26,7 +26,6 @@
   <table>
     <thead>
       <tr>
-        <th>No</th>
         <th>Nama Barang</th>
         <th>Harga</th>
         <th>Stok Awal</th>
@@ -35,7 +34,7 @@
     <tbody id="setupTable"></tbody>
   </table>
   <br>
-  <button onclick="mulaiKasir()">Mulai Mode Kasir</button>
+  <button onclick="mulaiKasir()">Mulai Berjualan</button>
 </div>
 
 <table id="kasirTable" style="display:none">
@@ -62,7 +61,7 @@
 </div>
 
 <div class="summary" id="rekapBox" style="display:none">
-  <h3>Rekap Sisa Barang (Discord)</h3>
+  <h3>Rekap Sisa Barang</h3>
   <textarea id="rekapText" rows="10" style="width:100%; font-family:monospace" readonly></textarea><br><br>
   <button onclick="copyRekap()">Copy Rekap</button>
 </div>
@@ -87,7 +86,6 @@
   daftarBarang.forEach((item, i) => {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${i + 1}</td>
       <td>${item.nama}</td>
       <td>Rp ${item.harga}</td>
       <td><input type="number" min="0" id="stok${i}" value="0"></td>
